@@ -3,8 +3,38 @@ const app = express();
 const {connectDB} = require("./config/database");
 const User = require("./models/user").User;
 const v8 = require('v8');
+const { validationResult } = require('express-validator');
+const { signUpValidator } = require('./validators/signupValidator');
+
 
 app.use(express.json());
+
+app.post("/signUp",signUpValidator,async(req,res)=>{
+    const errors = validationResult(req);    
+    if (!errors.isEmpty()) {
+        return res.status(400).json({ errors: errors.array() });
+    }
+
+    try{
+        const newUser = await new User({
+            firstName : req.body.firstName,
+            lastName : req.body.lastName,
+            emailId: req.body.emailId,
+            password:req.body.password,
+            age:req.body.age,
+            gender:req.body.gender,
+        })
+    const saveNewUser = await newUser.save();
+    res.status(201).send(saveNewUser);
+
+    }catch(err){
+        console.error(err);
+        res.status(500).send({ message: 'An internal server error occurred.' });
+    }
+        
+})
+
+
 
 app.post("/user",async(req,res)=>{
     try{
@@ -29,7 +59,6 @@ app.post("/user",async(req,res)=>{
             errorDetails: err.message
         });
     }
-
 })
 app.delete("/user",async(req,res)=>{
     try{
@@ -44,17 +73,22 @@ app.delete("/user",async(req,res)=>{
         });
 
     }
-    
-
 })
 
 app.patch("/user",async(req,res)=>{
     const userId = req.body.userId
     const data = req.body
     try{
-        const updatedUser = await User.findByIdAndUpdate({_id:userId},data,{new:false});
+        const updatedUser = await User.findByIdAndUpdate(
+            {_id:userId},
+            data,
+            {
+                returnDocument:"before",
+                runValidators:true
+            },
+        );
         console.log(updatedUser);
-        res.status(200).send("User Updated!")
+        res.status(200).send("User Updated!"+updatedUser)
 
     }catch(err){
         console.log("Error",err);
@@ -64,8 +98,6 @@ app.patch("/user",async(req,res)=>{
         });
 
     }
-    
-
 })
 app.get("/feed",async(req,res)=>{
     try{
@@ -79,25 +111,10 @@ app.get("/feed",async(req,res)=>{
     }catch(err){
         res.status(404).send(err)
     }
-
 })
 
 
-app.post("/signUp",async(req,res)=>{
-    console.log("hello",req.body)
-    const newUser = await new User({
-        firstName : req.body.firstName,
-        lastName : req.body.lastName,
-        emailId: req.body.emailId,
-        password:req.body.password,
-        age:req.body.age,
-        gender:req.body.gender
-    })
-    const saveNewUser = await newUser.save();
-    res.send(saveNewUser);
 
-
-})
 
 connectDB()
     .then(()=>{
