@@ -3,10 +3,11 @@ const { Schema } = mongoose;
 
 const gender = ['male', 'female']
 
-const userSchema = new Schema({        firstName :{
+const userSchema = new Schema({        
+    firstName :{
             type:String,
             require:true,
-            minLength: 5,
+            minLength: 3,
             maxLength: 16
         },
         lastName:{

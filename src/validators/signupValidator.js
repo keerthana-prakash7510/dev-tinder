@@ -32,7 +32,7 @@ const signUpValidator = [
     // gender validation
     body('gender')
         .optional({ checkFalsy: true })
-        .isIn(['Male', 'Female', 'Other']).withMessage('Gender must be Male, Female, or Other.')
+        .isIn(['male', 'female']).withMessage('Gender must be male or female .')
 ];
 
 module.exports = { signUpValidator };
