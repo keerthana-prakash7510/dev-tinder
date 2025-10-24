@@ -5,9 +5,8 @@ const User = require("./models/user").User;
 const v8 = require('v8');
 const { validationResult } = require('express-validator');
 const { signUpValidator } = require('./validators/signupValidator');
-const bcrypt = require('bcrypt');
+
 var cookieParser = require('cookie-parser')
-var jwt = require('jsonwebtoken');
 const saltRounds = 10;
 const { userAuth } = require('./middlewares/auth');
 
@@ -50,11 +49,9 @@ app.post("/login",async(req,res)=>{
             throw new Error("Invalid Credentials");
             
         }
-        isPasswordValid = await bcrypt.compare(password,user.password);
+        const isPasswordValid = await user.validatePassword(password);
         if(isPasswordValid){
-            const secretKey = 'shhhhh';
-            const payload = { userId: user._id, userName: user.firstName };
-            const token = jwt.sign(payload, secretKey, { expiresIn: '1h' });
+            const token = await user.getJWT();
             res.cookie('jwt', token);
             res.status(200).send("Logged in successfully");
             
@@ -94,60 +91,6 @@ app.post("/sendConnectionRequest",userAuth,async(req,res)=>{
         });
     }
 })
-app.delete("/user",async(req,res)=>{
-    try{
-        const deletedUser = await User.findByIdAndDelete(req.body.userId);
-        res.status(200).send("User removed!")
-
-    }catch(err){
-        console.log("Error",err);
-        res.status(500).send({
-            message: "Internal server error!",
-            errorDetails: err.message
-        });
-
-    }
-})
-
-app.patch("/user",async(req,res)=>{
-    const userId = req.body.userId
-    const data = req.body
-    try{
-        const updatedUser = await User.findByIdAndUpdate(
-            {_id:userId},
-            data,
-            {
-                returnDocument:"before",
-                runValidators:true
-            },
-        );
-        console.log(updatedUser);
-        res.status(200).send("User Updated!"+updatedUser)
-
-    }catch(err){
-        console.log("Error",err);
-        res.status(500).send({
-            message: "Internal server error!",
-            errorDetails: err.message
-        });
-
-    }
-})
-app.get("/feed",async(req,res)=>{
-    try{
-        const users = await User.find({}).lean();
-        if(users){
-            res.status(200).send(users);
-        }else{
-            res.status(404).send("User not found!")
-        }
-
-    }catch(err){
-        res.status(404).send(err)
-    }
-})
-
-
 
 
 connectDB()
