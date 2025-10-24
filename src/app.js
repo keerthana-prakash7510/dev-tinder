@@ -6,10 +6,15 @@ const v8 = require('v8');
 const { validationResult } = require('express-validator');
 const { signUpValidator } = require('./validators/signupValidator');
 const bcrypt = require('bcrypt');
+var cookieParser = require('cookie-parser')
+var jwt = require('jsonwebtoken');
 const saltRounds = 10;
+const { userAuth } = require('./middlewares/auth');
 
 
 app.use(express.json());
+app.use(cookieParser());
+
 
 app.post("/signUp",signUpValidator,async(req,res)=>{
     const errors = validationResult(req);    
@@ -39,6 +44,7 @@ app.post("/signUp",signUpValidator,async(req,res)=>{
 app.post("/login",async(req,res)=>{
     try {
         const {emailId,password} = req.body;
+        console.log('Cookies: ', req.cookies)
         const user = await User.findOne({emailId:emailId});
         if(!user){
             throw new Error("Invalid Credentials");
@@ -46,7 +52,12 @@ app.post("/login",async(req,res)=>{
         }
         isPasswordValid = await bcrypt.compare(password,user.password);
         if(isPasswordValid){
+            const secretKey = 'shhhhh';
+            const payload = { userId: user._id, userName: user.firstName };
+            const token = jwt.sign(payload, secretKey, { expiresIn: '1h' });
+            res.cookie('jwt', token);
             res.status(200).send("Logged in successfully");
+            
         }else{
             throw new Error("Invalid Credentials!");   
         }
@@ -62,25 +73,19 @@ app.post("/login",async(req,res)=>{
     }
 
 })
+app.get("/profile",userAuth,async(req,res)=>{
+    console.log("req.body",req.body)
+    const user = req.user;
+    if(!user){
+        throw new Error("User does not exists!");
+    }
+    res.send(user);
+})
 
-
-
-app.post("/user",async(req,res)=>{
+app.post("/sendConnectionRequest",userAuth,async(req,res)=>{
     try{
-        const user = await User.findOne({emailId:req.body.emailId}).lean();
-
-        const normalDoc = await User.findOne({emailId:req.body.emailId});
-        const leanDoc = await User.findOne({emailId:req.body.emailId}).lean();
-
-        console.log(v8.serialize(normalDoc).length); // approximately 180
-        console.log(v8.serialize(leanDoc).length);
-
-        if(user){
-            res.status(200).send(user);
-        }else{
-            res.status(404).send("User not found!")
-        }
-
+        const user = req.user;
+        res.status(200).send("Connection request send")
     }catch(err){
         console.error("User search failed:", err);
         res.status(500).send({
