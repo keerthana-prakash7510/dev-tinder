@@ -9,6 +9,10 @@ app.use(express.json());
 app.use(cookieParser());
 app.use("/v1/",routes);
 
+app.get("/test", (req,res) => {
+    res.send("Hello world!!")
+})
+
 connectDB()
     .then(()=>{
         console.log("Database connected successfully");
